@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0e11">
+<title>意见反馈 · Fanwhale</title>
+<style>
+  :root{
+    --bg:#0b0e11; --panel:#10151a; --line:rgba(255,255,255,.1);
+    --bone:#e8e6e1; --dim:rgba(232,230,225,.52); --dim2:rgba(232,230,225,.34);
+    --signal:#ffb547; --ok:#5fd39a;
+    --f:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    --fl:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;min-height:100%;background:var(--bg);color:var(--bone);font-family:var(--f)}
+  body{background-image:radial-gradient(120% 60% at 50% -10%,rgba(255,181,71,.07),transparent 60%)}
+
+  .wrap{max-width:680px;margin:0 auto;padding:0 16px 40px}
+
+  /* 顶栏 */
+  header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;
+    padding:14px 0 12px;background:linear-gradient(180deg,var(--bg) 72%,rgba(11,14,17,0));
+    border-bottom:1px solid var(--line)}
+  header h1{margin:0;font:600 15px/1.2 var(--f);letter-spacing:.06em}
+  header .sub{font:400 11px/1 var(--fl);color:var(--dim2);letter-spacing:.14em;margin-top:4px}
+  .back{margin-left:auto;flex:0 0 auto;padding:9px 15px;border:1px solid var(--line);
+    background:none;color:var(--dim);border-radius:3px;font:500 12px/1 var(--f);cursor:pointer}
+  .back:active{background:rgba(255,255,255,.06);color:var(--bone)}
+
+  /* 提交区 */
+  .compose{margin-top:18px;background:var(--panel);border:1px solid var(--line);
+    border-left:2px solid var(--signal);border-radius:3px;padding:14px}
+  .compose label{display:block;font:600 11px/1 var(--fl);letter-spacing:.16em;
+    color:var(--signal);margin-bottom:10px}
+  textarea{width:100%;min-height:96px;max-height:220px;resize:vertical;padding:11px 12px;
+    background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:3px;
+    color:var(--bone);font:400 13.5px/1.65 var(--f);outline:none}
+  textarea:focus{border-color:rgba(255,181,71,.45);background:rgba(255,255,255,.055)}
+  textarea::placeholder{color:var(--dim2)}
+  .row{display:flex;align-items:center;gap:12px;margin-top:10px}
+  .count{font:400 11px/1 var(--fl);color:var(--dim2);letter-spacing:.06em}
+  .send{margin-left:auto;padding:11px 24px;border:0;border-radius:3px;background:var(--signal);
+    color:#14181b;font:700 12px/1 var(--fl);letter-spacing:.12em;cursor:pointer}
+  .send:disabled{opacity:.45;cursor:default}
+  .send:active:not(:disabled){transform:translateY(1px)}
+
+  /* 状态条 */
+  .tip{margin-top:10px;font:400 12px/1.5 var(--f);min-height:18px}
+  .tip.ok{color:var(--ok)} .tip.err{color:#ff8f7a} .tip.mute{color:var(--dim2)}
+
+  /* 历史 */
+  .sec{margin-top:26px}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .sec-h b{font:600 12px/1 var(--fl);letter-spacing:.16em;color:var(--dim)}
+  .sec-h span{font:400 11px/1 var(--fl);color:var(--dim2)}
+  .list{display:flex;flex-direction:column;gap:10px}
+
+  .item{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:13px 14px}
+  .item.pending{border-left:2px solid rgba(255,181,71,.5)}
+  .item.done{border-left:2px solid var(--ok)}
+  .item .txt{margin:0;font:400 13.5px/1.62 var(--f);color:var(--bone);word-break:break-word}
+  .item .meta{display:flex;align-items:center;gap:10px;margin-top:9px;
+    font:400 11px/1 var(--fl);color:var(--dim2);letter-spacing:.05em}
+  .item .meta i{font-style:normal;margin-left:auto}
+  .item.pending .meta i{color:var(--signal)}
+  .item.done .meta i{color:var(--ok)}
+  .re{margin-top:11px;padding:11px 12px;background:rgba(95,211,154,.07);
+    border-left:2px solid var(--ok);border-radius:2px}
+  .re b{display:block;font:600 10px/1 var(--fl);letter-spacing:.16em;color:var(--ok);margin-bottom:7px}
+  .re p{margin:0;font:400 13px/1.6 var(--f);color:rgba(232,230,225,.86);word-break:break-word}
+
+  .empty{padding:34px 16px;text-align:center;border:1px dashed var(--line);border-radius:3px;
+    font:400 12.5px/1.7 var(--f);color:var(--dim2)}
+  .empty b{display:block;color:var(--dim);margin-bottom:6px;font-weight:600}
+
+  /* 未登录 */
+  .gate{display:none;margin-top:56px;padding:30px 22px;text-align:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:3px}
+  .gate.on{display:block}
+  .gate b{display:block;font:600 15px/1.3 var(--f);margin-bottom:10px}
+  .gate p{margin:0 0 18px;font:400 12.5px/1.65 var(--f);color:var(--dim)}
+  .gate button{padding:11px 26px;border:0;border-radius:3px;background:var(--signal);
+    color:#14181b;font:700 12px/1 var(--fl);letter-spacing:.1em;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>意见反馈</h1>
+      <div class="sub">FANWHALE · FEEDBACK</div>
+    </div>
+    <button class="back" id="back" type="button">返回</button>
+  </header>
+
+  <div class="gate" id="gate">
+    <b>还没有登录</b>
+    <p>反馈需要绑定账号，这样管理员回复你才收得到。<br>先回游戏登录一下再过来。</p>
+    <button type="button" id="gate-go">回到游戏</button>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="compose">
+      <label for="ta">写下你遇到的问题或建议</label>
+      <textarea id="ta" maxlength="600" placeholder="比如：全屏状态下点意见反馈没反应 / 盐仓那张图第三个继电器找不到 / 想让狙击枪后坐力小一点…"></textarea>
+      <div class="row">
+        <span class="count" id="count">0 / 600</span>
+        <button class="send" id="send" type="button">提交</button>
+      </div>
+      <div class="tip mute" id="tip">管理员会在后台看到，并在这里回复你。</div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><b>我的反馈</b><span id="stat"></span></div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var API = '/api';
+  var KEY = 'saltline.token.v1';
+
+  var $ta = document.getElementById('ta');
+  var $send = document.getElementById('send');
+  var $count = document.getElementById('count');
+  var $tip = document.getElementById('tip');
+  var $list = document.getElementById('list');
+  var $stat = document.getElementById('stat');
+  var $gate = document.getElementById('gate');
+  var $main = document.getElementById('main');
+
+  function token() {
+    try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; }
+  }
+
+  function api(path, opt) {
+    opt = opt || {};
+    var h = { 'content-type': 'application/json' };
+    var t = token();
+    if (t) h.authorization = 'Bearer ' + t;
+    return fetch(API + path, {
+      method: opt.method || 'GET',
+      headers: h,
+      body: opt.body ? JSON.stringify(opt.body) : undefined,
+      cache: 'no-store'
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) { var e = new Error(j.err || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+        return j;
+      });
+    });
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function fmt(ms) {
+    try {
+      var d = new Date(ms), n = new Date();
+      var p = function (x) { return (x < 10 ? '0' : '') + x; };
+      var same = d.toDateString() === n.toDateString();
+      return (same ? '' : (d.getMonth() + 1) + '/' + d.getDate() + ' ') + p(d.getHours()) + ':' + p(d.getMinutes());
+    } catch (e) { return ''; }
+  }
+
+  function say(msg, kind) {
+    $tip.className = 'tip ' + (kind || 'mute');
+    $tip.textContent = msg;
+  }
+
+  /* ---------- 历史 ---------- */
+  function load() {
+    $list.innerHTML = '<div class="empty">加载中…</div>';
+    api('/feedback').then(function (j) {
+      var arr = (j && j.list) || [];
+      if (!arr.length) {
+        $list.innerHTML = '<div class="empty"><b>还没有提交过反馈</b>写点东西试试，管理员会看到。</div>';
+        $stat.textContent = '';
+        return;
+      }
+      $list.innerHTML = arr.map(function (x) {
+        return '<div class="item ' + (x.reply ? 'done' : 'pending') + '">' +
+          '<p class="txt">' + esc(x.text) + '</p>' +
+          '<div class="meta"><span>' + fmt(x.at) + '</span>' +
+          '<i>' + (x.reply ? '已回复' : '等待回复') + '</i></div>' +
+          (x.reply
+            ? '<div class="re"><b>官方回复</b><p>' + esc(x.reply) + '</p></div>'
+            : '') +
+          '</div>';
+      }).join('');
+      var open = arr.filter(function (x) { return !x.reply; }).length;
+      $stat.textContent = '共 ' + arr.length + ' 条' + (open ? ' · ' + open + ' 条待回复' : '');
+    }).catch(function (e) {
+      if (e.status === 401) { needLogin(); return; }
+      $list.innerHTML = '<div class="empty">加载失败：' + esc(e.message) + '</div>';
+    });
+  }
+
+  /* ---------- 提交 ---------- */
+  var sending = false;
+  function send() {
+    if (sending) return;
+    var text = $ta.value.replace(/\s+/g, ' ').trim();
+    if (text.length < 4) { say('至少写 4 个字', 'err'); $ta.focus(); return; }
+    sending = true;
+    $send.disabled = true;
+    $send.textContent = '提交中';
+    say('正在提交…', 'mute');
+
+    api('/feedback', { method: 'POST', body: { text: text } }).then(function () {
+      $ta.value = '';
+      $count.textContent = '0 / 600';
+      say('已提交，管理员回复后会显示在下面', 'ok');
+      load();
+    }).catch(function (e) {
+      if (e.status === 401) { needLogin(); return; }
+      say(e.message, 'err');
+    }).then(function () {
+      sending = false;
+      $send.disabled = false;
+      $send.textContent = '提交';
+    });
+  }
+
+  /* ---------- 未登录 ---------- */
+  function needLogin() {
+    $main.style.display = 'none';
+    $gate.classList.add('on');
+  }
+
+  function goGame() {
+    /* 在 iframe 里就换 iframe，独立打开就直接跳 */
+    try {
+      if (window.parent && window.parent !== window) {
+        location.href = '/game.html?t=' + Date.now();
+      } else {
+        location.href = '/game.html?t=' + Date.now();
+      }
+    } catch (e) { location.href = '/game.html'; }
+  }
+
+  document.getElementById('back').addEventListener('click', goGame);
+  document.getElementById('gate-go').addEventListener('click', goGame);
+
+  $ta.addEventListener('input', function () {
+    $count.textContent = $ta.value.length + ' / 600';
+  });
+
+  $send.addEventListener('click', send);
+
+  /* Ctrl/Cmd + Enter 提交 */
+  $ta.addEventListener('keydown', function (ev) {
+    if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') { ev.preventDefault(); send(); }
+  });
+
+  /* ---------- 启动 ---------- */
+  if (!token()) {
+    needLogin();
+  } else {
+    $main.style.display = 'block';
+    load();
+  }
+})();
+</script>
+</body>
+</html>

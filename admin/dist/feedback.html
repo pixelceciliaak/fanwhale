@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>意见反馈 · 后台</title>
+<style>
+:root{--ink:#0b0e11;--card:#12171c;--line:rgba(255,255,255,.09);--bone:#e8e6e1;--dim:rgba(232,230,225,.5);--sig:#ffb547;--ok:#78dc a0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--bone);font:400 14px/1.6 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,14,17,.96);backdrop-filter:blur(8px);z-index:9}
+header b{font-size:15px;letter-spacing:.1em}
+header .tag{font:600 10px/1 ui-monospace,monospace;color:var(--sig);letter-spacing:.2em}
+header .sp{flex:1}
+header .stat{font:600 11px/1 ui-monospace,monospace;color:var(--dim);letter-spacing:.08em}
+header button{background:transparent;border:1px solid var(--line);color:var(--dim);padding:7px 14px;border-radius:3px;font:600 12px/1 inherit;cursor:pointer}
+header button:hover{border-color:var(--sig);color:var(--sig)}
+#login{max-width:360px;margin:16vh auto;padding:26px;background:var(--card);border:1px solid var(--line);border-top:2px solid var(--sig);border-radius:4px}
+#login h1{margin:0 0 4px;font-size:17px;letter-spacing:.08em}
+#login p{margin:0 0 18px;font-size:12px;color:var(--dim)}
+#login input{width:100%;padding:11px 12px;margin-bottom:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:3px;color:var(--bone);font:inherit;outline:none}
+#login input:focus{border-color:rgba(255,181,71,.6)}
+#login button{width:100%;padding:11px;background:var(--sig);border:0;border-radius:3px;color:#14181b;font:700 13px/1 inherit;letter-spacing:.1em;cursor:pointer}
+#err{margin-top:10px;min-height:18px;font-size:12px;color:#ff5a40}
+#list{max-width:860px;margin:0 auto;padding:18px 20px 60px;display:flex;flex-direction:column;gap:12px}
+.item{background:var(--card);border:1px solid var(--line);border-left:3px solid rgba(255,181,71,.55);border-radius:4px;padding:14px 16px}
+.item.done{border-left-color:rgba(120,220,160,.65)}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;font:600 11px/1 ui-monospace,monospace;color:var(--dim);letter-spacing:.06em}
+.meta .who{color:var(--sig)}
+.meta .st{margin-left:auto}
+.meta .st.w{color:var(--sig)}
+.meta .st.d{color:#78dca0}
+.text{margin:0 0 10px;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.reply{background:rgba(120,220,160,.07);border-left:2px solid rgba(120,220,160,.5);padding:9px 12px;border-radius:0 3px 3px 0;margin-bottom:10px}
+.reply b{display:block;font:700 10px/1 ui-monospace,monospace;color:#8ce1af;letter-spacing:.16em;margin-bottom:5px}
+.reply p{margin:0;font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:rgba(232,230,225,.85)}
+.act{display:flex;gap:8px}
+.act textarea,.act input{flex:1;min-width:0;padding:9px 11px;background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:3px;color:var(--bone);font:inherit;font-size:13px;outline:none;resize:vertical;min-height:38px}
+.act textarea:focus,.act input:focus{border-color:rgba(255,181,71,.55)}
+.act button{padding:0 18px;background:rgba(255,181,71,.14);border:1px solid rgba(255,181,71,.45);border-radius:3px;color:var(--sig);font:600 12px/1 inherit;letter-spacing:.08em;cursor:pointer;white-space:nowrap}
+.act button:hover{background:rgba(255,181,71,.24)}
+.act button:disabled{opacity:.45;cursor:default}
+.act .del{background:transparent;border-color:var(--line);color:var(--dim);padding:0 12px}
+.act .del:hover{border-color:rgba(255,90,64,.5);color:#ff5a40}
+.empty{text-align:center;padding:70px 20px;color:var(--dim);font-size:13px}
+@media (max-width:600px){#list{padding:12px}.item{padding:12px}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>意见反馈 · 后台</h1>
+  <p>用管理员账号登录后可查看与回复</p>
+  <input id="u" placeholder="管理员账号" autocomplete="username">
+  <input id="p" type="password" placeholder="密码" autocomplete="current-password">
+  <button id="go">登录</button>
+  <div id="err"></div>
+</div>
+
+<header id="bar" style="display:none">
+  <span class="tag">B4</span>
+  <b>意见反馈</b>
+  <span class="stat" id="stat">—</span>
+  <span class="sp"></span>
+  <button id="refresh">刷新</button>
+  <button id="out">退出</button>
+</header>
+<div id="list" style="display:none"></div>
+
+<script>
+(function(){
+  var KEY='saltline.admin.tok', tok='';
+  var $=function(id){return document.getElementById(id)};
+
+  function api(p,opt){
+    opt=opt||{};
+    opt.headers=opt.headers||{};
+    opt.headers.authorization='Bearer '+tok;
+    if(opt.body)opt.headers['content-type']='application/json';
+    return fetch('/api'+p,opt).then(function(r){return r.json()});
+  }
+  function esc(t){
+    return String(t).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function fmt(ms){
+    if(!ms)return '—';
+    var d=new Date(ms),p=function(x){return(x<10?'0':'')+x};
+    return (d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes());
+  }
+
+  function show(){
+    $('login').style.display='none';
+    $('bar').style.display='flex';
+    $('list').style.display='flex';
+    load();
+  }
+
+  function load(){
+    $('list').innerHTML='<div class="empty">加载中…</div>';
+    api('/admin/feedback').then(function(j){
+      if(!j||!j.list){ $('list').innerHTML='<div class="empty">'+(j&&j.err||'加载失败')+'</div>'; return; }
+      $('stat').textContent='共 '+j.total+' 条 · 待回复 '+j.open;
+      if(!j.list.length){ $('list').innerHTML='<div class="empty">还没有人提交反馈</div>'; return; }
+      $('list').innerHTML=j.list.map(function(x){
+        return '<div class="item'+(x.reply?' done':'')+'" data-id="'+esc(x.id)+'">'+
+          '<div class="meta"><span class="who">'+esc(x.nick||x.u)+'</span><span>'+fmt(x.at)+'</span>'+
+          '<span class="st '+(x.reply?'d':'w')+'">'+(x.reply?'已回复':'待回复')+'</span></div>'+
+          '<p class="text">'+esc(x.text)+'</p>'+
+          (x.reply?'<div class="reply"><b>你的回复</b><p>'+esc(x.reply)+'</p></div>':'')+
+          '<div class="act">'+
+            '<textarea rows="1" placeholder="'+(x.reply?'修改回复…':'写回复…')+'"></textarea>'+
+            '<button class="send">'+(x.reply?'更新':'回复')+'</button>'+
+            '<button class="del">删除</button>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+    }).catch(function(){ $('list').innerHTML='<div class="empty">网络异常</div>'; });
+  }
+
+  $('list').addEventListener('click',function(ev){
+    var item=ev.target.closest('.item');
+    if(!item)return;
+    var id=item.getAttribute('data-id');
+    if(ev.target.classList.contains('send')){
+      var ta=item.querySelector('textarea');
+      var v=(ta.value||'').trim();
+      if(!v){ ta.focus(); return; }
+      ev.target.disabled=true;
+      api('/admin/fb-reply',{method:'POST',body:JSON.stringify({id:id,reply:v})}).then(function(j){
+        ev.target.disabled=false;
+        if(j&&j.ok)load(); else alert((j&&j.err)||'操作失败');
+      }).catch(function(){ ev.target.disabled=false; alert('网络异常'); });
+    }
+    if(ev.target.classList.contains('del')){
+      if(!confirm('确定删除这条反馈？'))return;
+      api('/admin/fb-del',{method:'POST',body:JSON.stringify({id:id})}).then(function(j){
+        if(j&&j.ok)load(); else alert((j&&j.err)||'删除失败');
+      });
+    }
+  });
+
+  $('go').addEventListener('click',function(){
+    var u=$('u').value.trim(),p=$('p').value;
+    if(!u||!p){ $('err').textContent='账号和密码都要填'; return; }
+    $('err').textContent='';
+    fetch('/api/admin/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({u:u,p:p})})
+      .then(function(r){return r.json()})
+      .then(function(j){
+        if(j&&j.token){
+          tok=j.token;
+          try{sessionStorage.setItem(KEY,tok)}catch(e){}
+          show();
+        }else{
+          $('err').textContent=(j&&j.err)||'登录失败';
+        }
+      })
+      .catch(function(){ $('err').textContent='网络异常'; });
+  });
+
+  $('p').addEventListener('keydown',function(e){ if(e.key==='Enter')$('go').click(); });
+  $('refresh').addEventListener('click',load);
+  $('out').addEventListener('click',function(){
+    tok='';
+    try{sessionStorage.removeItem(KEY)}catch(e){}
+    location.reload();
+  });
+
+  try{ tok=sessionStorage.getItem(KEY)||''; }catch(e){}
+  if(tok){
+    api('/admin/stats').then(function(j){
+      if(j&&(j.users!==undefined||j.msgs!==undefined))show();
+      else { tok=''; try{sessionStorage.removeItem(KEY)}catch(e){} }
+    }).catch(function(){ tok=''; });
+  }
+})();
+</script>
+</body>
+</html>

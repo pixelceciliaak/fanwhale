@@ -1,0 +1,13 @@
+{
+  "name": "fanwhale-online",
+  "version": "1.0.0",
+  "private": true,
+  "description": "凡鲸行动 - 单进程部署包 (Node 内置模块, 零依赖)",
+  "main": "api/server.js",
+  "scripts": {
+    "start": "node api/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

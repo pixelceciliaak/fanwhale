@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0e11">
+<title>Fanwhale · 凡鲸行动</title>
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0b0e11;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  #g{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;background:#0b0e11}
+  #veil{position:fixed;inset:0;z-index:20;display:none;pointer-events:none;align-items:center;justify-content:center;
+    background:#0b0e11;color:rgba(232,230,225,.62);
+    font:500 12px/1.7 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.18em}
+  #veil.on{display:flex}
+  #veil b{display:block;font-size:13px;color:#ffb547;letter-spacing:.24em;margin-bottom:6px;text-align:center}
+</style>
+</head>
+<body>
+
+<iframe id="g" src="about:blank"
+        allow="fullscreen; pointer-lock; autoplay; gamepad; accelerometer; gyroscope"
+        referrerpolicy="same-origin"></iframe>
+
+<div id="veil"><div><b>FANWHALE</b>正在装载…</div></div>
+
+<script>
+(function () {
+  var g = document.getElementById('g');
+  var veil = document.getElementById('veil');
+  var ready = false;
+
+  function gameUrl(search) {
+    return '/game.html' + (search || '');
+  }
+
+  g.addEventListener('load', function () {
+    if (!g.src || g.src === 'about:blank') return;
+    ready = true;
+    veil.classList.remove('on');
+    try { document.title = 'Fanwhale · 凡鲸行动'; } catch (e) {}
+  });
+
+  /* 兜底：任何原因导致 load 没来，12 秒后也把遮罩撤掉，避免永久盖住 */
+  function armVeilGuard() {
+    clearTimeout(window.__veilT);
+    window.__veilT = setTimeout(function () {
+      veil.classList.remove('on');
+    }, 12000);
+  }
+
+  /* 游戏内部请求导航：只换 iframe，外壳不动 → 全屏保持 */
+  window.addEventListener('message', function (ev) {
+    if (ev.origin !== location.origin) return;
+    var d = ev.data || {};
+
+    if (d.type === 'nav' && typeof d.url === 'string') {
+      if (d.url.charAt(0) !== '/' || /^\s*\/\//.test(d.url)) return;
+      if (!ready) return;
+      veil.classList.add('on');
+      armVeilGuard();
+      var next = gameUrl(d.url);
+      g.src = 'about:blank';
+      setTimeout(function () { g.src = next; }, 30);
+      return;
+    }
+
+    if (d.type === 'fullscreen') { toggleFull(); return; }
+
+    if (d.type === 'exit-fullscreen') {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      }
+      return;
+    }
+  });
+
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        return;
+      }
+      var el = document.documentElement;
+      var p = (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  function notify() {
+    var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    try { g.contentWindow.postMessage({ type: 'fullscreen-state', on: on }, location.origin); } catch (e) {}
+  }
+  document.addEventListener('fullscreenchange', notify);
+  document.addEventListener('webkitfullscreenchange', notify);
+
+  g.addEventListener('error', function () {
+    veil.innerHTML = '<div><b>FANWHALE</b>装载失败，请刷新页面</div>';
+    veil.classList.add('on');
+  });
+
+  window.__shell = {
+    toggleFull: toggleFull,
+    reload: function (u) { g.src = gameUrl(u); },
+    state: function () {
+      return {
+        src: g.src,
+        ready: ready,
+        veil: veil.classList.contains('on'),
+        full: !!(document.fullscreenElement || document.webkitFullscreenElement)
+      };
+    }
+  };
+
+  veil.classList.add('on');
+  armVeilGuard();
+  g.src = gameUrl(location.search);
+})();
+</script>
+</body>
+</html>

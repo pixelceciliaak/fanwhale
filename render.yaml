@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: fanwhale
+    runtime: node
+    plan: free
+    buildCommand: echo "no build required (zero dependencies)"
+    startCommand: node api/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: PORT
+        sync: false
